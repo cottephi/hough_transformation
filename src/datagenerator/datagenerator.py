@@ -36,11 +36,31 @@ class DataGenerator:
             1, self.config.stddev, size=points_coordinates.shape[0]
         )
         return image, rs, thetas
+    
+    def _point_on_line(self, r_theta) -> tuple[float, float]:
+        r_, theta_ = r_theta
+        y_range = y(self.X_Y_RANGE, r_, theta_)
+        y_range.sort()
+        y_ = np.random.uniform(
+            max(self.X_Y_RANGE[0], y_range[0]),
+            min(y_range[1], self.X_Y_RANGE[1]),
+        )
+        return x(y_, r_, theta_), y_
 
     def _points_on_line(self) -> tuple[np.ndarray, float, float]:
+        shape = (self.config.points_per_line, 1)
         theta_ = np.random.uniform(
-            low=self.THETA_RANGE[0],
-            high=self.THETA_RANGE[1],
+            low=self.THETA_RANGE[0], high=self.THETA_RANGE[1],
+        )
+        thetas = (
+            stats.truncnorm(
+                (self.THETA_RANGE[0] - theta_) / self.config.deviations.theta,
+                (self.THETA_RANGE[1] - theta_) / self.config.deviations.theta,
+                loc=theta_,
+                scale=self.config.deviations.theta,
+            ).rvs(shape)
+            if self.config.deviations.theta > 0
+            else np.ones(shape) * theta_
         )
         r_range = r(
             theta_,
@@ -51,42 +71,19 @@ class DataGenerator:
             max(self.X_Y_RANGE[0], r_range.min()),
             min(self.X_Y_RANGE[1], r_range.max()),
         ]
-        r_ = np.random.uniform(
-            low=r_range[0],
-            high=r_range[1],
-        )
-        y_range = y(self.X_Y_RANGE, r_, theta_)
-        y_range.sort()
-        ys = np.random.uniform(
-            max(self.X_Y_RANGE[0], y_range[0]),
-            min(y_range[1], self.X_Y_RANGE[1]),
-            self.config.points_per_line,
-        )
-        thetas = (
-            stats.truncnorm(
-                (self.THETA_RANGE[0] - theta_) / self.config.deviations.theta,
-                (self.THETA_RANGE[1] - theta_) / self.config.deviations.theta,
-                loc=theta_,
-                scale=self.config.deviations.theta,
-            ).rvs(self.config.points_per_line)
-            if self.config.deviations.theta > 0
-            else theta_
-        )
+        r_ = np.random.uniform(low=r_range[0], high=r_range[1])
         rs = (
             stats.truncnorm(
                 (r_range[0] - r_) / self.config.deviations.r,
                 (r_range[1] - r_) / self.config.deviations.r,
                 loc=r_,
                 scale=self.config.deviations.r,
-            ).rvs(self.config.points_per_line)
-            if self.config.deviations.theta > 0
-            else r_
+            ).rvs(shape)
+            if self.config.deviations.r > 0
+            else np.ones(shape) * r_
         )
-        return (
-            np.concatenate([x(ys, rs, thetas).reshape(-1, 1), ys.reshape(-1, 1)], 1),
-            r_,
-            theta_,
-        )
+        points = np.apply_along_axis(self._point_on_line, 1, np.concatenate([rs, thetas], 1))
+        return points, r_, theta_
 
     def _create_noise_points_coordinates(self) -> np.ndarray:
         return np.random.uniform(

@@ -21,22 +21,22 @@ class Deviations(BaseModel):
 
 class DataGeneratorArgs(BaseModel):
     n_lines: PositiveInt = Field(
-        2, description="Number of lines to generate", aliases=["-n", "--n_lines"]
+        4, description="Number of lines to generate", aliases=["-n", "--n_lines"]
     )
     deviations: Deviations = Field(
-        "0,0",
+        "0.01,0.01",
         description="The standard deviations of r and theta as a tuple of floats "
         "(note that 0 <= r < 1 and 0 <= theta < pi)",
         aliases=["-d", "--deviations"],
     )
     points_per_line: int = Field(
-        4,
+        250,
         min=2,
         description="Number of points to generate for each line",
         aliases=["-p", "--points-per-line"],
     )
     outside_points: NonNegativeInt = Field(
-        2,
+        20,
         description="Number of points to generate outside of each line",
         aliases=["-o", "--outside-points"],
     )
@@ -57,7 +57,7 @@ class DataGeneratorArgs(BaseModel):
     )
     stddev: NonNegativeFloat = Field(
         0.2,
-        description="Standard deviation of the signal intensity (signal intensity is always 1)",
+        description="Standard deviation of the signal intensity (mean signal intensity is always 1)",
         aliases=["-s", "--stddev"],
     )
 
