@@ -1,8 +1,10 @@
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
 
 from ..functions import y
+from ..objects import Line
 
 plt.rcParams.update({"text.usetex": True, "font.family": "Helvetica"})
 
@@ -16,7 +18,7 @@ class Plotter:
         self,
         image: np.ndarray,
         bins: int | tuple[int, int],
-        lines: np.ndarray | None,
+        lines: tuple[Line] | None,
     ):
         self.image = image
         self.lines = lines
@@ -24,13 +26,14 @@ class Plotter:
 
     def _add_lines(self):
         xs = np.linspace(0, self.bins[0], 100)
-        for r_, theta_ in self.lines:
-            ys = y(xs, r_, theta_).reshape(-1)
+        for line in self.lines:
+            ys = y(xs, line.r, line.theta).reshape(-1)
             plt.plot(
                 xs,
                 ys,
                 linewidth=1,
-                label=f"$r={round(r_, 2)}$, $\\theta={round(theta_, 2)}$",
+                label=f"$r={round(line.r, 2)}$, "
+                      f"$\\theta={round(line.theta / math.pi, 2)}\\pi$",
             )
             plt.legend()
             ax = plt.gca()

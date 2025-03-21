@@ -1,6 +1,7 @@
 from src.argparser import Arguments
 from src.datagenerator import DataGenerator
 from src.plotter import Plotter
+from src.objects import Deviations
 
 from pathlib import Path
 
@@ -14,18 +15,14 @@ from pydantic import (
 )
 
 
-class Deviations(BaseModel):
-    r: NonNegativeFloat
-    theta: NonNegativeFloat
-
-
 class DataGeneratorArgs(BaseModel):
     n_lines: PositiveInt = Field(
         4, description="Number of lines to generate", aliases=["-n", "--n_lines"]
     )
     deviations: Deviations = Field(
-        "0.01,0.01",
-        description="The standard deviations of r and theta as a tuple of floats ",
+        "0.2,0.01,0.2",
+        description="The standard deviations of r, theta and of the Gaussian used"
+        "to generate the signal across X and Y, as a tuple of 3 floats ",
         aliases=["-d", "--deviations"],
     )
     points_per_line: int = Field(
@@ -70,8 +67,10 @@ class DataGeneratorArgs(BaseModel):
 
     @field_validator("deviations", mode="before")
     def handle_deviations(cls, deviations: str) -> Deviations:
-        r, theta = [float(value) for value in deviations.replace(" ", "").split(",")]
-        return Deviations(r=r, theta=theta)
+        r, theta, spread = [
+            float(value) for value in deviations.replace(" ", "").split(",")
+        ]
+        return Deviations(r=r, theta=theta, spread=spread)
 
 
 def main() -> None:
