@@ -4,10 +4,7 @@ from copy import copy
 
 from ..functions import y
 
-plt.rcParams.update({
-    "text.usetex": True,
-    "font.family": "Helvetica"
-})
+plt.rcParams.update({"text.usetex": True, "font.family": "Helvetica"})
 
 
 class Plotter:
@@ -18,15 +15,15 @@ class Plotter:
     def __init__(
         self,
         image: np.ndarray,
-        limits: tuple[tuple[int, int], tuple[int, int]],
+        bins: int | tuple[int, int],
         lines: np.ndarray | None,
     ):
         self.image = image
         self.lines = lines
-        self.limits = [v for values in limits for v in values]
+        self.bins = bins if isinstance(bins, tuple) else (bins, bins)
 
     def _add_lines(self):
-        xs = np.linspace(self.limits[0], self.limits[1], 100)
+        xs = np.linspace(0, self.bins[0], 100)
         for r_, theta_ in self.lines:
             ys = y(xs, r_, theta_).reshape(-1)
             plt.plot(
@@ -37,8 +34,8 @@ class Plotter:
             )
             plt.legend()
             ax = plt.gca()
-            ax.set_xlim(self.limits[0:2])
-            ax.set_ylim(self.limits[2:4])
+            ax.set_xlim([0, self.bins[0]])
+            ax.set_ylim([0, self.bins[1]])
 
     def plot(
         self,
@@ -46,14 +43,14 @@ class Plotter:
         include_lines: bool = True,
         **kwargs,
     ) -> None:
-        fig, ax = plt.subplots(figsize=(10, 10))
+        fig, ax = plt.subplots(figsize=(10, 10 * self.bins[1] / self.bins[0]))
         include_lines = include_lines and self.lines is not None
         plt_kwargs = copy(self.DEFAULT_KWARG)
         plt_kwargs.update(kwargs)
         image = ax.imshow(
             self.image.T,
             origin="lower",
-            extent=self.limits,
+            extent=[0, self.bins[0], 0, self.bins[1]],
             **plt_kwargs,
         )
         fig.colorbar(image, ax=ax, shrink=0.8)

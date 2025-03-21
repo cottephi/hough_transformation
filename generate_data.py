@@ -25,8 +25,7 @@ class DataGeneratorArgs(BaseModel):
     )
     deviations: Deviations = Field(
         "0.01,0.01",
-        description="The standard deviations of r and theta as a tuple of floats "
-        "(note that 0 <= r < 1 and 0 <= theta < pi)",
+        description="The standard deviations of r and theta as a tuple of floats ",
         aliases=["-d", "--deviations"],
     )
     points_per_line: int = Field(
@@ -45,9 +44,9 @@ class DataGeneratorArgs(BaseModel):
         descroption="Background noise as a fraction of the average signal in lines",
         aliases=["-b", "--background-noise"],
     )
-    bins: int = Field(
-        100,
-        description="Number of pixels (image is a square)",
+    bins: tuple[int, int] = Field(
+        "300x100",
+        description="Number of pixels. If only an int is supplied, image dimensions are NxN, else NxM",
         aliases=["-B", "--bins"],
     )
     output: Path = Field(
@@ -60,6 +59,14 @@ class DataGeneratorArgs(BaseModel):
         description="Standard deviation of the signal intensity (mean signal intensity is always 1)",
         aliases=["-s", "--stddev"],
     )
+
+    @field_validator("bins", mode="before")
+    def handle_bins(cls, bins: str) -> tuple[int, int]:
+        return (
+            tuple(int(value) for value in bins.split("x"))
+            if "x" in bins
+            else tuple(int(bins), int(bins))
+        )
 
     @field_validator("deviations", mode="before")
     def handle_deviations(cls, deviations: str) -> Deviations:
@@ -79,11 +86,8 @@ def main() -> None:
 
     generator = DataGenerator(args)
     image, lines = generator.generate()
-    limits = (tuple(DataGenerator.X_Y_RANGE), tuple(DataGenerator.X_Y_RANGE))
-    plotter = Plotter(image, limits, lines)
-    plotter.plot(
-        args.output.with_suffix(".pdf"),
-    )
+    plotter = Plotter(image, args.bins, lines)
+    plotter.plot(args.output.with_suffix(".pdf"))
 
 
 if __name__ == "__main__":
