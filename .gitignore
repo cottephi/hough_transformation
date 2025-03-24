@@ -8,5 +8,5 @@ wheels/
 
 # Virtual environments
 .venv
-data.*
 dumped_data/
+generated_data/

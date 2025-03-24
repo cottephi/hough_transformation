@@ -200,7 +200,7 @@ class DataGenerator:
             dumpdir.unlink()
         if dumpdir.is_dir():
             shutil.rmtree(dumpdir)
-        dumpdir.mkdir()
+        dumpdir.mkdir(parents=True)
 
         np.savetxt(dumpdir / "coordinates.csv", binned_coordinates, delimiter=",")
         if noise.points:

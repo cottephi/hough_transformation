@@ -12,11 +12,14 @@ class Arguments(argparse.ArgumentParser):
 
     def parse(self):
         for name, field in self.model.model_fields.items():
+            has_default = False
             if field.default is not None:
+                has_default = True
                 default = field.default
             if field.default_factory is not None:
+                has_default = True
                 default = field.default_factory()
-            if default:
+            if has_default:
                 self.add_argument(
                     *field.json_schema_extra["aliases"],
                     dest=name,

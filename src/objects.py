@@ -17,6 +17,9 @@ class Deviations(BaseModel):
     theta: NonNegativeFloat
     spread: NonNegativeFloat
 
+    def __repr__(self):
+        return f"sigma_r={self.r},sigma_theta={self.theta},spread={self.spread}"
+
 
 class Line(Points):
     def __init__(

@@ -16,6 +16,9 @@ from pydantic import (
 
 
 class DataGeneratorArgs(BaseModel):
+
+    __OUTPUT = Path("./generated_data")
+
     n_lines: PositiveInt = Field(
         4, description="Number of lines to generate", aliases=["-n", "--n_lines"]
     )
@@ -46,15 +49,16 @@ class DataGeneratorArgs(BaseModel):
         description="Number of pixels. If only an int is supplied, image dimensions are NxN, else NxM",
         aliases=["-B", "--bins"],
     )
-    output: Path = Field(
-        "./data.hdf5",
-        description="The file to save the generated data in",
-        aliases=["-O", "--output-path"],
-    )
     stddev: NonNegativeFloat = Field(
         0.2,
         description="Standard deviation of the signal intensity (mean signal intensity is always 1)",
         aliases=["-s", "--stddev"],
+    )
+    output: Path = Field(
+        "",
+        description="The file name to save the generated data in. It will be located"
+                    " in ./generated_data/",
+        aliases=["-O", "--output-path"],
     )
 
     @field_validator("bins", mode="before")
@@ -71,6 +75,24 @@ class DataGeneratorArgs(BaseModel):
             float(value) for value in deviations.replace(" ", "").split(",")
         ]
         return Deviations(r=r, theta=theta, spread=spread)
+
+    @field_validator("output", mode="before")
+    def handle_output(cls, path: str, values) -> Path:
+        if not path:
+            path = "_".join(
+                [f"{key}:{value}" for key, value in values.data.items()]
+            ).replace(".", "").replace(" ", "")
+            path = cls.__OUTPUT.default / path / "data.hdf5"
+        else:
+            path  = cls.__OUTPUT.default / path
+            if path.is_dir():
+                path = path / "data.hdf5"
+            if not path.suffix == ".hdf5":
+                path = path.with_suffix(".hdf5")
+        
+        if not path.parent.is_dir():
+            path.parent.mkdir(parents=True)
+        return path
 
 
 def main() -> None:
