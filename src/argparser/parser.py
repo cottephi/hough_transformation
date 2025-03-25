@@ -12,27 +12,20 @@ class Arguments(argparse.ArgumentParser):
 
     def parse(self):
         for name, field in self.model.model_fields.items():
-            has_default = False
-            if field.default is not None:
-                has_default = True
-                default = field.default
-            if field.default_factory is not None:
-                has_default = True
-                default = field.default_factory()
-            if has_default:
+            if field.is_required():
                 self.add_argument(
                     *field.json_schema_extra["aliases"],
                     dest=name,
                     type=field.annotation if field.annotation in BASE_TYPES else str,
-                    default=default,
+                    required=True,
                     help=field.description,
                 )
             else:
                 self.add_argument(
                     *field.json_schema_extra["aliases"],
                     dest=name,
-                    type=field.annotation,
-                    required=True,
+                    type=field.annotation if field.annotation in BASE_TYPES else str,
+                    default=field.default,
                     help=field.description,
                 )
         return self.model(**vars(self.parse_args()))

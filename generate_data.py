@@ -16,7 +16,6 @@ from pydantic import (
 
 
 class DataGeneratorArgs(BaseModel):
-
     __OUTPUT = Path("./generated_data")
 
     n_lines: PositiveInt = Field(
@@ -57,7 +56,7 @@ class DataGeneratorArgs(BaseModel):
     output: Path = Field(
         "",
         description="The file name to save the generated data in. It will be located"
-                    " in ./generated_data/",
+        " in ./generated_data/",
         aliases=["-O", "--output-path"],
     )
 
@@ -79,17 +78,19 @@ class DataGeneratorArgs(BaseModel):
     @field_validator("output", mode="before")
     def handle_output(cls, path: str, values) -> Path:
         if not path:
-            path = "_".join(
-                [f"{key}:{value}" for key, value in values.data.items()]
-            ).replace(".", "").replace(" ", "")
+            path = (
+                "_".join([f"{key}={value}" for key, value in values.data.items()])
+                .replace(".", "")
+                .replace(" ", "")
+            )
             path = cls.__OUTPUT.default / path / "data.hdf5"
         else:
-            path  = cls.__OUTPUT.default / path
+            path = cls.__OUTPUT.default / path
             if path.is_dir():
                 path = path / "data.hdf5"
             if not path.suffix == ".hdf5":
                 path = path.with_suffix(".hdf5")
-        
+
         if not path.parent.is_dir():
             path.parent.mkdir(parents=True)
         return path
@@ -107,7 +108,7 @@ def main() -> None:
 
     generator = DataGenerator(args)
     image, lines = generator.generate()
-    plotter = Plotter(image, args.bins, lines)
+    plotter = Plotter(image, lines)
     plotter.plot(args.output.with_suffix(".pdf"))
 
 

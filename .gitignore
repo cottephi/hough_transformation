@@ -10,3 +10,6 @@ wheels/
 .venv
 dumped_data/
 generated_data/
+found_lines/
+
+.vscode/

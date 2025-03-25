@@ -2,9 +2,11 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
+from pydantic import validate_call
 
 from ..functions import y
 from ..objects import Line
+from ..types import IMAGE
 
 plt.rcParams.update({"text.usetex": True, "font.family": "Helvetica"})
 
@@ -14,15 +16,15 @@ class Plotter:
         "cmap": "viridis",
     }
 
+    @validate_call
     def __init__(
         self,
-        image: np.ndarray,
-        bins: int | tuple[int, int],
+        image: IMAGE,
         lines: tuple[Line] | None,
     ):
         self.image = image
         self.lines = lines
-        self.bins = bins if isinstance(bins, tuple) else (bins, bins)
+        self.bins = self.image.shape
 
     def _add_lines(self):
         xs = np.linspace(0, self.bins[0], 100)
@@ -33,13 +35,14 @@ class Plotter:
                 ys,
                 linewidth=1,
                 label=f"$r={round(line.r, 2)}$, "
-                      f"$\\theta={round(line.theta / math.pi, 2)}\\pi$",
+                f"$\\theta={round(line.theta / math.pi, 2)}\\pi$",
             )
             plt.legend()
             ax = plt.gca()
             ax.set_xlim([0, self.bins[0]])
             ax.set_ylim([0, self.bins[1]])
 
+    @validate_call
     def plot(
         self,
         save_as: str,

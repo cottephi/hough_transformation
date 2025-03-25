@@ -5,16 +5,27 @@ import shutil
 import h5py
 import numpy as np
 import scipy.stats as stats
-from pydantic import BaseModel
+from pydantic import BaseModel, validate_call
 
 from ..functions import x, y, r
 from ..objects import Deviations, Points, Line
+from ..types import (
+    IMAGE,
+    POINTS,
+    COORDINATES,
+    SIGNAL,
+    BINS_LIMITS,
+    POINT,
+    POINTS_AND_SIGNAL,
+    R_THETA,
+)
 
 
 class PointsSpreadGenerator(Points):
+    @validate_call
     def __init__(
         self,
-        points: np.ndarray,
+        points: POINTS,
         bins: tuple[int, int],
         deviations: Deviations,
         stddev: float,
@@ -23,9 +34,9 @@ class PointsSpreadGenerator(Points):
         self.deviations = deviations
         self.stddev = stddev
         self.points = points
-        self.signal: np.ndarray
-        self.x_bins: np.ndarray
-        self.y_bins: np.ndarray
+        self.signal: SIGNAL
+        self.x_bins: BINS_LIMITS
+        self.y_bins: BINS_LIMITS
         self._handle_bins()
         # Do not use super() here as GeneratedLine derives on this class and on
         # Line, and super() can then get confuse
@@ -35,7 +46,8 @@ class PointsSpreadGenerator(Points):
         self.x_bins = np.linspace(0, self.bins[0], self.bins[0])
         self.y_bins = np.linspace(0, self.bins[1], self.bins[1])
 
-    def _spread_one_point(self, x_y):
+    @validate_call
+    def _spread_one_point(self, x_y: POINT) -> POINTS_AND_SIGNAL:
         s = self.deviations.spread
         xmax, ymax = self.bins
         xs, ys = np.mgrid[
@@ -51,7 +63,7 @@ class PointsSpreadGenerator(Points):
         spread = np.random.normal(1, self.stddev) * spread / spread.sum()
         return np.concatenate([xs_ys, spread.reshape(-1, 1)], 1)
 
-    def _generate_signal_and_bin(self) -> np.ndarray:
+    def _generate_signal_and_bin(self) -> tuple[POINTS, SIGNAL]:
         if self.deviations.spread > 0:
             points = np.apply_along_axis(
                 self._spread_one_point,
@@ -69,11 +81,12 @@ class PointsSpreadGenerator(Points):
 
 
 class GeneratedLine(PointsSpreadGenerator, Line):
+    @validate_call
     def __init__(
         self,
         r: float,
         theta: float,
-        points: np.ndarray,
+        points: POINTS,
         bins: tuple[int, int],
         deviations: Deviations,
         stddev: float,
@@ -85,6 +98,7 @@ class GeneratedLine(PointsSpreadGenerator, Line):
 class LineGenerator:
     THETA_RANGE = (0, math.pi)
 
+    @validate_call
     def __init__(
         self,
         bins: tuple[int, int],
@@ -97,7 +111,8 @@ class LineGenerator:
         self.deviations = deviations
         self.stddev = stddev
 
-    def _point_on_line(self, r_theta) -> tuple[float, float]:
+    @validate_call
+    def _point_on_line(self, r_theta: R_THETA) -> tuple[float, float]:
         r_, theta_ = r_theta
         y_range = y(np.array([0, self.bins[0]]), r_, theta_)
         y_range.sort()
@@ -154,15 +169,17 @@ class LineGenerator:
             self.stddev,
         )
 
+    @validate_call
     def generate(self, n: int) -> tuple[GeneratedLine]:
         return tuple(self._generate_line() for _ in range(n))
 
 
 class DataGenerator:
+    @validate_call
     def __init__(self, config: BaseModel):
         self.config = config
 
-    def _create_image(self) -> tuple[np.ndarray, tuple[GeneratedLine]]:
+    def _create_image(self) -> tuple[IMAGE, tuple[GeneratedLine]]:
         image = (
             np.random.normal(
                 0,
@@ -188,12 +205,13 @@ class DataGenerator:
         image[binned_coordinates[:, 0], binned_coordinates[:, 1]] += signal
         return image, lines
 
+    @validate_call
     def _dumps(
         self,
-        binned_coordinates: np.ndarray,
+        binned_coordinates: COORDINATES,
         noise: PointsSpreadGenerator,
         lines: tuple[GeneratedLine],
-        image: np.ndarray,
+        image: IMAGE,
     ):
         dumpdir = Path("dumped_data")
         if dumpdir.is_file():
@@ -272,7 +290,7 @@ class DataGenerator:
         lines = line_generator.generate(self.config.n_lines)
         return noise, lines
 
-    def generate(self) -> tuple[np.ndarray, tuple[GeneratedLine]]:
+    def generate(self) -> tuple[IMAGE, tuple[GeneratedLine]]:
         image, lines = self._create_image()
         rs_thetas = [(line.r, line.theta) for line in lines]
         with h5py.File(self.config.output, "w") as ofile:

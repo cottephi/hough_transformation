@@ -5,10 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
+            "name": "generator",
             "type": "debugpy",
             "request": "launch",
             "program": "generate_data.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "finder",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "find_lines.py",
+            "args": ["-i", "generated_data/testdata.hdf5"],
             "console": "integratedTerminal"
         }
     ]
