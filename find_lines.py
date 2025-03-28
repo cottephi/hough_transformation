@@ -1,5 +1,5 @@
 from src.argparser import Arguments
-from src.linefinder import PointsFinder
+from src.linefinder import LinesFinder
 
 from pathlib import Path
 
@@ -28,6 +28,19 @@ class LineFinderArgs(BaseModel):
         " in ./found_lines/",
         aliases=["-o", "--output-path"],
     )
+    bins: tuple[int, int] = Field(
+        "100x100",
+        description="Number of bins in the r x theta space",
+        aliases=["-B", "--bins"],
+    )
+
+    @field_validator("bins", mode="before")
+    def handle_bins(cls, bins: str) -> tuple[int, int]:
+        return (
+            tuple(int(value) for value in bins.split("x"))
+            if "x" in bins
+            else tuple(int(bins), int(bins))
+        )
 
     @field_validator("input", mode="after")
     def handle_input(cls, path: Path) -> Path:
@@ -64,8 +77,8 @@ def main() -> None:
     args = parser.parse()
     print("Using args", args)
 
-    point_finder = PointsFinder(
-        data=args.input, threshold=args.threshold, output=args.output
+    point_finder = LinesFinder(
+        data=args.input, threshold=args.threshold, output=args.output, bins=args.bins
     )
     point_finder.find()
 

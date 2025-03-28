@@ -75,8 +75,8 @@ class PointsSpreadGenerator(Points):
         else:
             signal = np.random.normal(1, self.stddev, size=self.points.shape[0])
 
-        xs = np.digitize(self.points[:, 0], self.x_bins).reshape(-1, 1)
-        ys = np.digitize(self.points[:, 1], self.y_bins).reshape(-1, 1)
+        xs = np.digitize(self.points[:, 0], self.x_bins).reshape(-1, 1) - 1
+        ys = np.digitize(self.points[:, 1], self.y_bins).reshape(-1, 1) - 1
         return np.concatenate([xs, ys], 1), signal
 
 
@@ -114,7 +114,7 @@ class LineGenerator:
     @validate_call
     def _point_on_line(self, r_theta: R_THETA) -> tuple[float, float]:
         r_, theta_ = r_theta
-        y_range = y(np.array([0, self.bins[0]]), r_, theta_)
+        y_range = y(np.array([0, self.bins[0]], dtype=float), r_, theta_)
         y_range.sort()
         y_ = np.random.uniform(
             max(0, y_range[0]),
@@ -140,8 +140,8 @@ class LineGenerator:
         )
         r_range = r(
             theta_,
-            xs=np.array([0, self.bins[0], 0, self.bins[0]]),
-            ys=np.array([0, self.bins[1], self.bins[1], 0]),
+            xs=np.array([0, self.bins[0], 0, self.bins[0]], dtype=float),
+            ys=np.array([0, self.bins[1], self.bins[1], 0], dtype=float),
         )
         r_range = [
             max(0, r_range.min()),
@@ -202,7 +202,20 @@ class DataGenerator:
             or binned_coordinates[:, 1].max() >= image.shape[1]
         ):
             self._dumps(binned_coordinates, noise, lines, image)
-        image[binned_coordinates[:, 0], binned_coordinates[:, 1]] += signal
+
+        uniques = np.unique(binned_coordinates, axis=0)
+
+        def sum_signal(bins):
+            x_coo, y_coo = bins
+            mask = np.where(
+                (binned_coordinates[:, 0] == x_coo)
+                & (binned_coordinates[:, 1] == y_coo)
+            )
+            return signal[mask].sum()
+
+        image[uniques[:, 0], uniques[:, 1]] += np.apply_along_axis(
+            sum_signal, 1, uniques
+        )
         return image, lines
 
     @validate_call
@@ -210,7 +223,7 @@ class DataGenerator:
         self,
         binned_coordinates: COORDINATES,
         noise: PointsSpreadGenerator,
-        lines: tuple[GeneratedLine],
+        lines: tuple[GeneratedLine, ...],
         image: IMAGE,
     ):
         dumpdir = Path("dumped_data")

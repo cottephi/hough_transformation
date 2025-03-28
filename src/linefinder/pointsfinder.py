@@ -6,35 +6,21 @@ import scipy.ndimage.filters as filters
 import matplotlib.pyplot as plt
 from pydantic import validate_call
 
-from ..types import X, Y, IMAGE
+from ..types import X, Y, IMAGE, POINTS
 
 
 class PointsFinder:
     @validate_call
-    def __init__(self, data: IMAGE | Path, threshold: float, output: Path):
+    def __init__(self, data: IMAGE, threshold: float, output: Path):
         self.threshold = threshold
         self.output = output
-        if isinstance(data, np.ndarray):
-            self.data = data
-        else:
-            if not data.suffix == ".hdf5":
-                raise ValueError("Can only read HDF5 files")
-            with h5py.File(data, "r") as f:
-                if not "data" in f.keys():
-                    raise ValueError("HDF5 file must contain the 'data' key")
-                self._set_data(f["data"][()])
-        if len(self.data.shape) != 2:
-            raise ValueError("'points' must be a 2D array")
+        self.data = data
 
     @validate_call
     def _set_data(self, data: IMAGE):
         self.data = data
 
-    def find(self):
-        xs, ys = self._find_points()
-        self._plot_points(xs, ys)
-
-    def _find_points(self) -> tuple[X, Y]:
+    def find(self) -> POINTS:
         neighborhood_size = 5
         data_max = filters.maximum_filter(self.data, neighborhood_size)
         maxima = self.data == data_max
@@ -46,11 +32,14 @@ class PointsFinder:
         slices = ndimage.find_objects(labeled)
         xs, ys = [], []
         for dx, dy in slices:
-            x_center = (dx.start + dx.stop - 1) / 2
+            x_center = (dx.start + dx.stop) / 2
             xs.append(x_center)
-            y_center = (dy.start + dy.stop - 1) / 2
+            y_center = (dy.start + dy.stop) / 2
             ys.append(y_center)
-        return np.array(xs), np.array(ys)
+        self._plot_points(xs, ys)
+        return np.concatenate(
+            [np.array(xs).reshape(-1, 1), np.array(ys).reshape(-1, 1)], axis=1
+        )
 
     @validate_call
     def _plot_points(self, xs: X, ys: Y):

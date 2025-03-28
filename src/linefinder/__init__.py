@@ -1,3 +1,3 @@
-from .pointsfinder import PointsFinder
+from .linesfinder import LinesFinder
 
-__all__ = ["PointsFinder"]
+__all__ = ["LinesFinder"]

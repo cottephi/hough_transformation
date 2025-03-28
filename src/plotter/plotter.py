@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import copy
@@ -20,7 +21,7 @@ class Plotter:
     def __init__(
         self,
         image: IMAGE,
-        lines: tuple[Line] | None,
+        lines: tuple[Line, ...] | None,
     ):
         self.image = image
         self.lines = lines
@@ -45,7 +46,7 @@ class Plotter:
     @validate_call
     def plot(
         self,
-        save_as: str,
+        save_as: str | Path,
         include_lines: bool = True,
         **kwargs,
     ) -> None:

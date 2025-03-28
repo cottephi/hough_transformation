@@ -1,15 +1,34 @@
 from pydantic import BaseModel, NonNegativeFloat
-import numpy as np
+from pydantic import validate_call
+import pydantic_core
+
+from .types import COORDINATES, SIGNAL
 
 
 class Points:
+    @validate_call
     def __init__(
         self,
-        binned_coordinates: np.ndarray | None,
-        signal: np.ndarray | None,
+        binned_coordinates: COORDINATES | None,
+        signal: SIGNAL | None,
     ):
         self.binned_coordinates = binned_coordinates
         self.signal = signal
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, _, __):
+        def validate(value):
+            return value
+
+        schema = pydantic_core.core_schema.union_schema(
+            [
+                pydantic_core.core_schema.is_instance_schema(cls),
+            ]
+        )
+
+        return pydantic_core.core_schema.no_info_after_validator_function(
+            validate, schema
+        )
 
 
 class Deviations(BaseModel):
@@ -22,12 +41,13 @@ class Deviations(BaseModel):
 
 
 class Line(Points):
+    @validate_call
     def __init__(
         self,
         r: float,
         theta: float,
-        binned_coordinates: np.ndarray | None,
-        signal: np.ndarray | None,
+        binned_coordinates: COORDINATES | None,
+        signal: SIGNAL | None,
     ):
         super().__init__(binned_coordinates, signal)
         self.r = r
