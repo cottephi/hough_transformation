@@ -14,7 +14,7 @@ class LineFinderArgs(BaseModel):
     __OUTPUT = Path("./found_lines")
 
     threshold: float = Field(
-        0.02,
+        1.0,
         description="Threshold above which we consider data is signal",
         aliases=["-t", "--threshold"],
     )
@@ -53,7 +53,7 @@ class LineFinderArgs(BaseModel):
         if not path:
             path = (
                 "_".join([f"{key}={value}" for key, value in values.data.items()])
-                .replace(".", "")
+                .replace(".", ",")
                 .replace(" ", "")
             )
             path = cls.__OUTPUT.default / path

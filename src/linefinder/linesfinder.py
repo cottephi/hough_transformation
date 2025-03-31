@@ -45,8 +45,8 @@ class LinesFinder:
         points = self.pointsfinder.find()
         rs = np.apply_along_axis(
             partial(r, xs=points[:, 0], ys=points[:, 1]), 1, self.thetas
-        )
-        r_range = [rs.min().min(), rs.max().max()]
+        ).T
+        r_range = (rs.min().min(), rs.max().max())
         r_bins = np.linspace(r_range[0], r_range[1], self.bins[0])
         binned_rs = np.digitize(rs, r_bins) - 1
         binned_thetas = np.digitize(self.thetas[:, 0], self.thetas[:, 0]) - 1
@@ -54,25 +54,39 @@ class LinesFinder:
         rs_thetas = np.concatenate(
             [
                 binned_rs.reshape(binned_rs.shape[0] * binned_rs.shape[1], 1),
-                np.concatenate([binned_thetas] * binned_rs.shape[1]).reshape(-1, 1),
+                np.concatenate([binned_thetas] * binned_rs.shape[0]).reshape(-1, 1),
             ],
             1,
         )
         uniques = np.unique(rs_thetas, axis=0, return_counts=True)
         image[uniques[0][:, 0], uniques[0][:, 1]] = uniques[1]
-        self._plot(image)
+        self._plot(image, r_bins.round(2).tolist())
 
     @validate_call
-    def _plot(self, data: IMAGE):
+    def _plot(self, data: IMAGE, r_bins: list[float]):
         fig, ax = plt.subplots(figsize=(10, 10 * data.shape[1] / data.shape[0]))
         image = ax.imshow(
             data.T,
             origin="lower",
             extent=[0, data.shape[0], 0, data.shape[1]],
         )
+        r_step = self.bins[0] / 5
+        theta_step = self.bins[1] / 4
         fig.colorbar(image, ax=ax, shrink=0.8)
         ax = plt.gca()
-        ax.set_xlim([0, data.shape[0]])
-        ax.set_ylim([0, data.shape[1]])
+        plt.xticks(
+            np.arange(0, self.bins[0] + 1, r_step),
+            r_bins[:: int(r_step)] + [r_bins[-1]],
+        )
+        theta_labels = [
+            "0",
+            "$\\frac{\\pi}{4}$",
+            "$\\frac{\\pi}{2}$",
+            "$\\frac{3\\pi}{4}$",
+            "$\\pi$",
+        ]
+        plt.yticks(np.arange(0, self.bins[1] + 1, theta_step), theta_labels)
+        plt.xlabel("$r$")
+        plt.ylabel("$\\theta$")
         fig.tight_layout()
         plt.savefig(self.output / "r_theta.pdf")

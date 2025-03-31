@@ -63,7 +63,9 @@ class PointsSpreadGenerator(Points):
         spread = np.random.normal(1, self.stddev) * spread / spread.sum()
         return np.concatenate([xs_ys, spread.reshape(-1, 1)], 1)
 
-    def _generate_signal_and_bin(self) -> tuple[POINTS, SIGNAL]:
+    def _generate_signal_and_bin(self) -> tuple[COORDINATES, SIGNAL]:
+        if self.points.size == 0:
+            return np.zeros(shape=(0, 2), dtype=int), np.array([], dtype=float)
         if self.deviations.spread > 0:
             points = np.apply_along_axis(
                 self._spread_one_point,
@@ -279,12 +281,17 @@ class DataGenerator:
         )
 
     def _create_noise_points_coordinates(self) -> PointsSpreadGenerator:
-        return PointsSpreadGenerator(
-            np.random.uniform(
+        points = (
+            np.zeros(shape=(0, 2), dtype=float)
+            if self.config.outside_points == 0
+            else np.random.uniform(
                 low=(0, 0),
                 high=(self.config.bins[0], self.config.bins[1]),
                 size=(self.config.n_lines * self.config.outside_points, 2),
-            ),
+            )
+        )
+        return PointsSpreadGenerator(
+            points,
             self.config.bins,
             self.config.deviations,
             self.config.stddev,
