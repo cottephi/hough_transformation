@@ -3,14 +3,14 @@ from pathlib import Path
 from functools import partial
 import numpy as np
 import h5py
-import scipy.ndimage as ndimage
-import scipy.ndimage.filters as filters
 import matplotlib.pyplot as plt
 from pydantic import validate_call
 
-from ..types import IMAGE
+from ..types import IMAGE, POINTS, R
 from .pointsfinder import PointsFinder
 from ..functions import r
+from ..plotter import Plotter
+from ..objects import Line
 
 
 class LinesFinder:
@@ -18,10 +18,16 @@ class LinesFinder:
 
     @validate_call
     def __init__(
-        self, data: IMAGE | Path, threshold: float, output: Path, bins: tuple[int, int]
+        self,
+        data: IMAGE | Path,
+        xy_threshold: float,
+        rtheta_threshold: int,
+        output: Path,
+        bins: tuple[int, int],
     ):
         self.output = output
         self.bins = bins
+        self.rtheta_threshold = rtheta_threshold
         self.thetas = np.linspace(
             self.THETA_RANGE[0], self.THETA_RANGE[1], self.bins[1]
         ).reshape(-1, 1)
@@ -34,15 +40,16 @@ class LinesFinder:
                 if not "data" in f.keys():
                     raise ValueError("HDF5 file must contain the 'data' key")
                 self._set_data(f["data"][()])
-        self.pointsfinder = PointsFinder(self.data, threshold, output)
+        self.pointsfinder = PointsFinder(
+            self.data, xy_threshold, output / "found_points.pdf"
+        )
 
     @validate_call
     def _set_data(self, data: IMAGE):
         self.data = data
 
     @validate_call
-    def find(self):
-        points = self.pointsfinder.find()
+    def _create_accumulator(self, points: POINTS) -> tuple[IMAGE, R]:
         rs = np.apply_along_axis(
             partial(r, xs=points[:, 0], ys=points[:, 1]), 1, self.thetas
         ).T
@@ -61,6 +68,17 @@ class LinesFinder:
         uniques = np.unique(rs_thetas, axis=0, return_counts=True)
         image[uniques[0][:, 0], uniques[0][:, 1]] = uniques[1]
         self._plot(image, r_bins.round(2).tolist())
+        return image, r_bins
+
+    def find(self):
+        points = self.pointsfinder.find()
+        accumulator, r_bins = self._create_accumulator(points)
+        pointsfinder = PointsFinder(
+            accumulator, self.rtheta_threshold, self.output / "found_rtheta.pdf"
+        )
+        lines = [Line(r_bins[int(r_)], self.thetas[int(theta_)]) for r_, theta_ in pointsfinder.find()]
+        plotter = Plotter(self.data, lines)
+        plotter.plot(self.output / "found_lines.pdf")
 
     @validate_call
     def _plot(self, data: IMAGE, r_bins: list[float]):

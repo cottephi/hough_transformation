@@ -46,8 +46,8 @@ class Line(Points):
         self,
         r: float,
         theta: float,
-        binned_coordinates: COORDINATES | None,
-        signal: SIGNAL | None,
+        binned_coordinates: COORDINATES | None = None,
+        signal: SIGNAL | None = None,
     ):
         super().__init__(binned_coordinates, signal)
         self.r = r

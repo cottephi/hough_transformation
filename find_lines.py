@@ -13,25 +13,30 @@ from pydantic import (
 class LineFinderArgs(BaseModel):
     __OUTPUT = Path("./found_lines")
 
-    threshold: float = Field(
+    xy_threshold: float = Field(
         1.0,
-        description="Threshold above which we consider data is signal",
-        aliases=["-t", "--threshold"],
+        description="Threshold above which we consider data is signal in X-Y space",
+        aliases=["-x", "--xy-threshold"],
+    )
+    rtheta_threshold: float = Field(
+        5,
+        description="Threshold above which we consider data is signal accumulator space",
+        aliases=["-r", "--rtheta-threshold"],
     )
     input: Path = Field(
         description="The HDF5 file containing the raw data",
         aliases=["-i", "--input"],
+    )
+    bins: tuple[int, int] = Field(
+        "100x100",
+        description="Number of bins in the r x theta space",
+        aliases=["-b", "--bins"],
     )
     output: Path = Field(
         "",
         description="The file name to save the lines in. It will be located"
         " in ./found_lines/",
         aliases=["-o", "--output-path"],
-    )
-    bins: tuple[int, int] = Field(
-        "100x100",
-        description="Number of bins in the r x theta space",
-        aliases=["-B", "--bins"],
     )
 
     @field_validator("bins", mode="before")
@@ -52,7 +57,7 @@ class LineFinderArgs(BaseModel):
     def handle_output(cls, path: str, values) -> Path:
         if not path:
             path = (
-                "_".join([f"{key}={value}" for key, value in values.data.items()])
+                "_".join([f"{key}={value}".replace('/', '\\') for key, value in values.data.items()])
                 .replace(".", ",")
                 .replace(" ", "")
             )
@@ -64,6 +69,7 @@ class LineFinderArgs(BaseModel):
 
         if not path.is_dir():
             path.mkdir(parents=True)
+        print(f"Writing output to {path}")
         return path
 
 
@@ -77,10 +83,14 @@ def main() -> None:
     args = parser.parse()
     print("Using args", args)
 
-    point_finder = LinesFinder(
-        data=args.input, threshold=args.threshold, output=args.output, bins=args.bins
+    lines_finder = LinesFinder(
+        data=args.input,
+        xy_threshold=args.xy_threshold,
+        rtheta_threshold=args.rtheta_threshold,
+        output=args.output,
+        bins=args.bins,
     )
-    point_finder.find()
+    lines_finder.find()
 
 
 if __name__ == "__main__":

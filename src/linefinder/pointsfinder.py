@@ -6,7 +6,7 @@ import scipy.ndimage.filters as filters
 import matplotlib.pyplot as plt
 from pydantic import validate_call
 
-from ..types import X, Y, IMAGE, POINTS
+from ..types import R, R_THETA, THETA, X, Y, IMAGE, POINTS
 
 
 class PointsFinder:
@@ -20,7 +20,7 @@ class PointsFinder:
     def _set_data(self, data: IMAGE):
         self.data = data
 
-    def find(self) -> POINTS:
+    def find(self) -> POINTS | R_THETA:
         neighborhood_size = 5
         data_max = filters.maximum_filter(self.data, neighborhood_size)
         maxima = self.data == data_max
@@ -42,7 +42,7 @@ class PointsFinder:
         )
 
     @validate_call
-    def _plot_points(self, xs: X, ys: Y):
+    def _plot_points(self, xs: X | R, ys: Y | THETA):
         fig, ax = plt.subplots(
             figsize=(10, 10 * self.data.shape[1] / self.data.shape[0])
         )
@@ -63,4 +63,4 @@ class PointsFinder:
         ax.set_xlim([0, self.data.shape[0]])
         ax.set_ylim([0, self.data.shape[1]])
         fig.tight_layout()
-        plt.savefig(self.output / "found_points.pdf")
+        plt.savefig(self.output)
