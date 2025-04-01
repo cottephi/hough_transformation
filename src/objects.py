@@ -2,7 +2,9 @@ from pydantic import BaseModel, NonNegativeFloat
 from pydantic import validate_call
 import pydantic_core
 
-from .types import COORDINATES, SIGNAL
+from src.functions import r
+
+from .types import COORDINATES, IMAGE, POINTS, SIGNAL
 
 
 class Points:
@@ -52,3 +54,10 @@ class Line(Points):
         super().__init__(binned_coordinates, signal)
         self.r = r
         self.theta = theta
+        self.max_points: POINTS
+
+    @validate_call
+    def points_on_line(self, points: POINTS, width: float, image: IMAGE):
+        rs = r(xs=points[:, 0], ys=points[:, 1], thetas=self.theta)
+        mask = ((self.r - width / 2.0) < rs) & ((self.r + width / 2.0) > rs)
+        self.max_points = points[mask]

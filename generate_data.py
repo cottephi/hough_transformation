@@ -19,27 +19,27 @@ class DataGeneratorArgs(BaseModel):
     __OUTPUT = Path("./generated_data")
 
     n_lines: PositiveInt = Field(
-        4, description="Number of lines to generate", aliases=["-n", "--n_lines"]
+        3, description="Number of lines to generate", aliases=["-n", "--n_lines"]
     )
     deviations: Deviations = Field(
-        "0.2,0.01,0.2",
+        "0.2,0.0,0.5",
         description="The standard deviations of r, theta and of the Gaussian used"
         "to generate the signal across X and Y, as a tuple of 3 floats ",
         aliases=["-d", "--deviations"],
     )
     points_per_line: int = Field(
-        250,
+        50,
         min=2,
         description="Number of points to generate for each line",
         aliases=["-p", "--points-per-line"],
     )
     outside_points: NonNegativeInt = Field(
-        20,
+        10,
         description="Number of points to generate outside of each line",
         aliases=["-o", "--outside-points"],
     )
     background_level: NonNegativeFloat = Field(
-        0.1,
+        0.01,
         descroption="Background noise as a fraction of the average signal in lines",
         aliases=["-b", "--background-noise"],
     )
@@ -107,9 +107,7 @@ def main() -> None:
     print("Using args", args)
 
     generator = DataGenerator(args)
-    image, lines = generator.generate()
-    plotter = Plotter(image, lines)
-    plotter.plot(args.output.with_suffix(".pdf"))
+    generator.generate()
 
 
 if __name__ == "__main__":

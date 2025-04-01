@@ -20,7 +20,8 @@ class LineFinderArgs(BaseModel):
     )
     rtheta_threshold: float = Field(
         5,
-        description="Threshold above which we consider data is signal accumulator space",
+        description="Threshold above which we consider data is signal "
+        "accumulator space",
         aliases=["-r", "--rtheta-threshold"],
     )
     input: Path = Field(
@@ -28,9 +29,15 @@ class LineFinderArgs(BaseModel):
         aliases=["-i", "--input"],
     )
     bins: tuple[int, int] = Field(
-        "100x100",
+        "500x500",
         description="Number of bins in the r x theta space",
         aliases=["-b", "--bins"],
+    )
+    width: float = Field(
+        1.0,
+        description="Width of the line: points along a found line are considered"
+        " 'on the line' if they are within this distance of the line",
+        aliases=["-w", "--width"],
     )
     output: Path = Field(
         "",
@@ -57,7 +64,12 @@ class LineFinderArgs(BaseModel):
     def handle_output(cls, path: str, values) -> Path:
         if not path:
             path = (
-                "_".join([f"{key}={value}".replace('/', '\\') for key, value in values.data.items()])
+                "_".join(
+                    [
+                        f"{key}={value}".replace("/", "\\")
+                        for key, value in values.data.items()
+                    ]
+                )
                 .replace(".", ",")
                 .replace(" ", "")
             )
@@ -69,7 +81,6 @@ class LineFinderArgs(BaseModel):
 
         if not path.is_dir():
             path.mkdir(parents=True)
-        print(f"Writing output to {path}")
         return path
 
 
@@ -89,6 +100,7 @@ def main() -> None:
         rtheta_threshold=args.rtheta_threshold,
         output=args.output,
         bins=args.bins,
+        width=args.width,
     )
     lines_finder.find()
 

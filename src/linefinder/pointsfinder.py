@@ -11,9 +11,8 @@ from ..types import R, R_THETA, THETA, X, Y, IMAGE, POINTS
 
 class PointsFinder:
     @validate_call
-    def __init__(self, data: IMAGE, threshold: float, output: Path):
+    def __init__(self, data: IMAGE, threshold: float):
         self.threshold = threshold
-        self.output = output
         self.data = data
 
     @validate_call
@@ -36,31 +35,6 @@ class PointsFinder:
             xs.append(x_center)
             y_center = (dy.start + dy.stop) / 2
             ys.append(y_center)
-        self._plot_points(xs, ys)
         return np.concatenate(
             [np.array(xs).reshape(-1, 1), np.array(ys).reshape(-1, 1)], axis=1
         )
-
-    @validate_call
-    def _plot_points(self, xs: X | R, ys: Y | THETA):
-        fig, ax = plt.subplots(
-            figsize=(10, 10 * self.data.shape[1] / self.data.shape[0])
-        )
-        image = ax.imshow(
-            self.data.T,
-            origin="lower",
-            extent=[0, self.data.shape[0], 0, self.data.shape[1]],
-        )
-        fig.colorbar(image, ax=ax, shrink=0.8)
-        plt.scatter(
-            xs,
-            ys,
-            marker="o",
-            color="r",
-            s=0.3,
-        )
-        ax = plt.gca()
-        ax.set_xlim([0, self.data.shape[0]])
-        ax.set_ylim([0, self.data.shape[1]])
-        fig.tight_layout()
-        plt.savefig(self.output)

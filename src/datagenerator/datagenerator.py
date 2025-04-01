@@ -7,6 +7,7 @@ import numpy as np
 import scipy.stats as stats
 from pydantic import BaseModel, validate_call
 
+from ..plotter.plotter import Plotter
 from ..functions import x, y, r
 from ..objects import Deviations, Points, Line
 from ..types import (
@@ -33,18 +34,12 @@ class PointsSpreadGenerator(Points):
         self.bins = bins
         self.deviations = deviations
         self.stddev = stddev
-        self.points = points
+        self.max_points = points
+        self.points: POINTS
         self.signal: SIGNAL
-        self.x_bins: BINS_LIMITS
-        self.y_bins: BINS_LIMITS
-        self._handle_bins()
         # Do not use super() here as GeneratedLine derives on this class and on
         # Line, and super() can then get confuse
         Points.__init__(self, *self._generate_signal_and_bin())
-
-    def _handle_bins(self):
-        self.x_bins = np.linspace(0, self.bins[0], self.bins[0])
-        self.y_bins = np.linspace(0, self.bins[1], self.bins[1])
 
     @validate_call
     def _spread_one_point(self, x_y: POINT) -> POINTS_AND_SIGNAL:
@@ -64,21 +59,23 @@ class PointsSpreadGenerator(Points):
         return np.concatenate([xs_ys, spread.reshape(-1, 1)], 1)
 
     def _generate_signal_and_bin(self) -> tuple[COORDINATES, SIGNAL]:
-        if self.points.size == 0:
+        if self.max_points.size == 0:
             return np.zeros(shape=(0, 2), dtype=int), np.array([], dtype=float)
         if self.deviations.spread > 0:
             points = np.apply_along_axis(
                 self._spread_one_point,
                 1,
-                self.points,
+                self.max_points,
             ).reshape(-1, 3)
             self.points = points[:, :2]
             signal = points[:, -1]
         else:
+            self.points = self.max_points
             signal = np.random.normal(1, self.stddev, size=self.points.shape[0])
 
-        xs = np.digitize(self.points[:, 0], self.x_bins).reshape(-1, 1) - 1
-        ys = np.digitize(self.points[:, 1], self.y_bins).reshape(-1, 1) - 1
+        xs, ys = self.points.T.astype(int)
+        xs = xs.reshape(-1, 1)
+        ys = ys.reshape(-1, 1)
         return np.concatenate([xs, ys], 1), signal
 
 
@@ -181,7 +178,7 @@ class DataGenerator:
     def __init__(self, config: BaseModel):
         self.config = config
 
-    def _create_image(self) -> tuple[IMAGE, tuple[GeneratedLine]]:
+    def _create_image(self) -> tuple[IMAGE, tuple[GeneratedLine], COORDINATES]:
         image = (
             np.random.normal(
                 0,
@@ -198,6 +195,12 @@ class DataGenerator:
                 *(line.binned_coordinates for line in lines),
             ]
         )
+        max_coorindates = np.concatenate(
+            [
+                noise.max_points,
+                *(line.max_points for line in lines),
+            ]
+        ).astype(int)
         signal = np.concatenate([noise.signal, *(line.signal for line in lines)])
         if (
             binned_coordinates[:, 0].max() >= image.shape[0]
@@ -218,7 +221,7 @@ class DataGenerator:
         image[uniques[:, 0], uniques[:, 1]] += np.apply_along_axis(
             sum_signal, 1, uniques
         )
-        return image, lines
+        return image, lines, max_coorindates
 
     @validate_call
     def _dumps(
@@ -311,9 +314,12 @@ class DataGenerator:
         return noise, lines
 
     def generate(self) -> tuple[IMAGE, tuple[GeneratedLine]]:
-        image, lines = self._create_image()
+        image, lines, coordinates = self._create_image()
         rs_thetas = [(line.r, line.theta) for line in lines]
         with h5py.File(self.config.output, "w") as ofile:
             ofile["data"] = image
             ofile["lines"] = rs_thetas
+        
+        plotter = Plotter(image, lines, coordinates)
+        plotter.plot(self.config.output.with_suffix(".pdf"))
         return image, lines
