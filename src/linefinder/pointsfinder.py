@@ -1,15 +1,14 @@
 import numpy as np
-import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
 from pydantic import validate_call
 
-from ..types import R_THETA, IMAGE, POINTS
+from ..types import COORDINATE, R_THETA, IMAGE, POINTS
 
 
 class PointsFinder:
     @validate_call
     def __init__(
-        self, data: IMAGE, threshold: float, spread: float
+        self, data: IMAGE, threshold: float, spread: int
     ):
         self.threshold = threshold
         self.data = data
@@ -20,21 +19,19 @@ class PointsFinder:
         self.data = data
 
     def find(self) -> POINTS | R_THETA:
-        neighborhood_size = 5
-        data_max = filters.maximum_filter(self.data, neighborhood_size)
-        maxima = self.data == data_max
-        data_min = filters.minimum_filter(self.data, neighborhood_size)
-        diff = (data_max - data_min) > self.threshold
-        maxima[~diff] = 0
+        size = self.spread * 2 + 1
+        kernel = -np.ones((size, size))
+        kernel[self.spread, self.spread] = size ** 2
+        convoluted = filters.convolve(self.data, kernel, mode="constant")
+        maxima = convoluted == filters.maximum_filter(convoluted, self.spread)
+        mask = (self.data > self.threshold) & maxima
 
-        labeled, _ = ndimage.label(maxima)
-        slices = ndimage.find_objects(labeled)
-        xs, ys = [], []
-        for dx, dy in slices:
-            x_center = (dx.start + dx.stop) / 2
-            xs.append(x_center)
-            y_center = (dy.start + dy.stop) / 2
-            ys.append(y_center)
+        xs, ys = np.where(mask)
         return np.concatenate(
             [np.array(xs).reshape(-1, 1), np.array(ys).reshape(-1, 1)], axis=1
-        )
+        ) + 0.5  # +0.5 to center the bins
+
+    @staticmethod
+    def distance(reference: COORDINATE, points: POINTS) -> np.ndarray:
+        diff = points - reference
+        return (diff[:, 0] ** 2 + diff[:, 1] ** 2) ** (1/2)

@@ -29,14 +29,14 @@ class LineFinderArgs(BaseModel):
         " 'on the line' if they are within this distance of the line",
         aliases=["-w", "--width"],
     )
-    rtheta_spread: float = Field(
-        0.1,
+    rtheta_spread: int = Field(
+        5,
         description="Zone around a point in r-theta space where signal will be"
         " aggregated in the first pass of the points finding algorithm.",
         aliases=["-s", "--rtheta-spread"],
     )
-    xy_spread: float = Field(
-        0.5,
+    xy_spread: int = Field(
+        5,
         description="Zone around a point in x-y space where signal will be"
         " aggregated in the first pass of the points finding algorithm.",
         aliases=["-S", "--xy-spread"]
@@ -63,7 +63,7 @@ class LineFinderArgs(BaseModel):
             return (
                 tuple(int(value) for value in bins.split("x"))
                 if "x" in bins
-                else tuple(int(bins), int(bins))
+                else (int(bins), int(bins))
             )
         return bins["r"], bins["theta"]
 

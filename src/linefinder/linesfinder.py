@@ -25,8 +25,8 @@ class LinesFinder:
         output: Path,
         bins: tuple[int, int],
         line_width: float,
-        xy_spread: float,
-        rtheta_spread: float,
+        xy_spread: int,
+        rtheta_spread: int,
     ):
         self.output = output
         self.bins = bins
@@ -75,9 +75,12 @@ class LinesFinder:
 
     def find(self):
         points = self.pointsfinder.find()
+        lines = []
+        if points.size == 0:
+            print("No points found")
+            return
         accumulator, r_bins = self._create_accumulator(points)
         pointsfinder = PointsFinder(accumulator, self.rtheta_threshold, self.rtheta_spread)
-        lines = []
         rs_thetas = pointsfinder.find()
         plotter_r_theta = Plotter(accumulator, None, rs_thetas.astype(int))
         plotter_r_theta.plot(self.output / "found_rtheta.pdf")
