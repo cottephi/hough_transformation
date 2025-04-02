@@ -89,6 +89,8 @@ class LinesFinder:
             line.points_on_line(points, self.line_width, self.data)
             lines.append(line)
 
+        with h5py.File(self.output / "found_rtheta.hdf5", "w") as ofile:
+            ofile["lines"] = rs_thetas
         plotter = Plotter(self.data, lines, points.astype(int))
         plotter.plot(self.output / "found_lines.pdf")
 
