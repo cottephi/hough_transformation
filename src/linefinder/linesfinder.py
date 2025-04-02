@@ -25,11 +25,14 @@ class LinesFinder:
         output: Path,
         bins: tuple[int, int],
         line_width: float,
+        xy_spread: float,
+        rtheta_spread: float,
     ):
         self.output = output
         self.bins = bins
         self.line_width = line_width
         self.rtheta_threshold = rtheta_threshold
+        self.rtheta_spread = rtheta_spread
         self.thetas = np.linspace(
             self.THETA_RANGE[0], self.THETA_RANGE[1], self.bins[1]
         ).reshape(-1, 1)
@@ -43,7 +46,7 @@ class LinesFinder:
                     raise ValueError("HDF5 file must contain the 'data' key")
                 self._set_data(f["data"][()])
         self.xy_bins = self.data.shape
-        self.pointsfinder = PointsFinder(self.data, xy_threshold)
+        self.pointsfinder = PointsFinder(self.data, xy_threshold, xy_spread)
 
     @validate_call
     def _set_data(self, data: IMAGE):
@@ -73,7 +76,7 @@ class LinesFinder:
     def find(self):
         points = self.pointsfinder.find()
         accumulator, r_bins = self._create_accumulator(points)
-        pointsfinder = PointsFinder(accumulator, self.rtheta_threshold)
+        pointsfinder = PointsFinder(accumulator, self.rtheta_threshold, self.rtheta_spread)
         lines = []
         rs_thetas = pointsfinder.find()
         plotter_r_theta = Plotter(accumulator, None, rs_thetas.astype(int))

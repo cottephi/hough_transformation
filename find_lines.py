@@ -29,16 +29,17 @@ class LineFinderArgs(BaseModel):
         " 'on the line' if they are within this distance of the line",
         aliases=["-w", "--width"],
     )
-    rtheta_mask: float = Field(
+    rtheta_spread: float = Field(
         0.1,
-        description="Mask in r-theta space around which points are ignored once"
-        " a local maximum is found",
-        aliases=["-m", "--rtheta_mask"],
+        description="Zone around a point in r-theta space where signal will be"
+        " aggregated in the first pass of the points finding algorithm.",
+        aliases=["-s", "--rtheta-spread"],
     )
-    spread: float = Field(
+    xy_spread: float = Field(
         0.5,
         description="Zone around a point in x-y space where signal will be"
         " aggregated in the first pass of the points finding algorithm.",
+        aliases=["-S", "--xy-spread"]
     )
     thresholds: tuple[float, float] = Field(
         "1.0,5.0",
@@ -119,6 +120,8 @@ def main() -> None:
         output=args.output,
         bins=args.bins,
         line_width=args.line_width,
+        xy_spread=args.xy_spread,
+        rtheta_spread=args.rtheta_spread,
     )
     lines_finder.find()
 

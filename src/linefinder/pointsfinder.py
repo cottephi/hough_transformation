@@ -1,19 +1,19 @@
-from pathlib import Path
 import numpy as np
-import h5py
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
-import matplotlib.pyplot as plt
 from pydantic import validate_call
 
-from ..types import R, R_THETA, THETA, X, Y, IMAGE, POINTS
+from ..types import R_THETA, IMAGE, POINTS
 
 
 class PointsFinder:
     @validate_call
-    def __init__(self, data: IMAGE, threshold: float):
+    def __init__(
+        self, data: IMAGE, threshold: float, spread: float
+    ):
         self.threshold = threshold
         self.data = data
+        self.spread = spread
 
     @validate_call
     def _set_data(self, data: IMAGE):

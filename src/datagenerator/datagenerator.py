@@ -15,7 +15,6 @@ from ..types import (
     POINTS,
     COORDINATES,
     SIGNAL,
-    BINS_LIMITS,
     POINT,
     POINTS_AND_SIGNAL,
     R_THETA,

@@ -19,8 +19,8 @@ LineFinderArgs:
     theta: 500
   input: "generated_data/testdata.hdf5"
   line_width: 1.0
-  rtheta_mask: 0.1
-  spread: 0.5
+  rtheta_spread: 0.1
+  xy_spread: 0.5
   thresholds:
     xy: 0.2
     rtheta: 5
