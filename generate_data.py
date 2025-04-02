@@ -6,6 +6,7 @@ from src.objects import Deviations
 from pathlib import Path
 
 from pydantic import (
+    ConfigDict,
     NonNegativeFloat,
     PositiveInt,
     Field,
@@ -17,30 +18,11 @@ from pydantic import (
 
 class DataGeneratorArgs(BaseModel):
     __OUTPUT = Path("./generated_data")
+    model_config = ConfigDict(extra="forbid")
 
-    n_lines: PositiveInt = Field(
-        3, description="Number of lines to generate", aliases=["-n", "--n_lines"]
-    )
-    deviations: Deviations = Field(
-        "0.2,0.0,0.5",
-        description="The standard deviations of r, theta and of the Gaussian used"
-        "to generate the signal across X and Y, as a tuple of 3 floats ",
-        aliases=["-d", "--deviations"],
-    )
-    points_per_line: int = Field(
-        50,
-        min=2,
-        description="Number of points to generate for each line",
-        aliases=["-p", "--points-per-line"],
-    )
-    outside_points: NonNegativeInt = Field(
-        10,
-        description="Number of points to generate outside of each line",
-        aliases=["-o", "--outside-points"],
-    )
     background_level: NonNegativeFloat = Field(
         0.01,
-        descroption="Background noise as a fraction of the average signal in lines",
+        description="Background noise as a fraction of the average signal in lines",
         aliases=["-b", "--background-noise"],
     )
     bins: tuple[int, int] = Field(
@@ -48,11 +30,34 @@ class DataGeneratorArgs(BaseModel):
         description="Number of pixels. If only an int is supplied, image dimensions are NxN, else NxM",
         aliases=["-B", "--bins"],
     )
+    deviations: Deviations = Field(
+        "0.2,0.0,0.5",
+        description="The standard deviations of r, theta and of the Gaussian used"
+        "to generate the signal across X and Y, as a tuple of 3 floats ",
+        aliases=["-d", "--deviations"],
+    )
+    n_lines: PositiveInt = Field(
+        3, description="Number of lines to generate", aliases=["-n", "--n_lines"]
+    )
+    outside_points: NonNegativeInt = Field(
+        10,
+        description="Number of points to generate outside of each line",
+        aliases=["-o", "--outside-points"],
+    )
+    points_per_line: int = Field(
+        50,
+        min=2,
+        description="Number of points to generate for each line",
+        aliases=["-p", "--points-per-line"],
+    )
     stddev: NonNegativeFloat = Field(
         0.2,
         description="Standard deviation of the signal intensity (mean signal intensity is always 1)",
         aliases=["-s", "--stddev"],
     )
+    # DO NOT CHANGE THE ORDER OF 'output': it must be
+    # after all other attributes in order to correctly determine the output path if not
+    # specified
     output: Path = Field(
         "",
         description="The file name to save the generated data in. It will be located"
@@ -61,19 +66,23 @@ class DataGeneratorArgs(BaseModel):
     )
 
     @field_validator("bins", mode="before")
-    def handle_bins(cls, bins: str) -> tuple[int, int]:
-        return (
-            tuple(int(value) for value in bins.split("x"))
-            if "x" in bins
-            else tuple(int(bins), int(bins))
-        )
+    def handle_bins(cls, bins: str | dict) -> tuple[int, int]:
+        if isinstance(bins, str):
+            return (
+                tuple(int(value) for value in bins.split("x"))
+                if "x" in bins
+                else tuple(int(bins), int(bins))
+            )
+        return bins["x"], bins["y"]
 
     @field_validator("deviations", mode="before")
-    def handle_deviations(cls, deviations: str) -> Deviations:
-        r, theta, spread = [
-            float(value) for value in deviations.replace(" ", "").split(",")
-        ]
-        return Deviations(r=r, theta=theta, spread=spread)
+    def handle_deviations(cls, deviations: str | dict) -> Deviations:
+        if isinstance(deviations, str):
+            r, theta, spread = [
+                float(value) for value in deviations.replace(" ", "").split(",")
+            ]
+            return Deviations(r=r, theta=theta, spread=spread)
+        return Deviations(**deviations)
 
     @field_validator("output", mode="before")
     def handle_output(cls, path: str, values) -> Path:
@@ -105,7 +114,6 @@ def main() -> None:
 
     args = parser.parse()
     print("Using args", args)
-
     generator = DataGenerator(args)
     generator.generate()
 

@@ -319,7 +319,7 @@ class DataGenerator:
         with h5py.File(self.config.output, "w") as ofile:
             ofile["data"] = image
             ofile["lines"] = rs_thetas
-        
+
         plotter = Plotter(image, lines, coordinates)
         plotter.plot(self.config.output.with_suffix(".pdf"))
         return image, lines

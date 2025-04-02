@@ -42,7 +42,10 @@ class Plotter:
                 label=f"$r={round(line.r, 2)}$, "
                 f"$\\theta={round(line.theta / math.pi, 2)}\\pi$",
             )
-            if line.binned_coordinates is not None and line.binned_coordinates.size != 0:
+            if (
+                line.binned_coordinates is not None
+                and line.binned_coordinates.size != 0
+            ):
                 points_on_this_line = line.max_points.astype(int)
                 plt.scatter(
                     points_on_this_line[:, 0],
@@ -51,9 +54,13 @@ class Plotter:
                     color="b",
                     s=0.3,
                 )
-                points_on_a_line = np.concatenate([points_on_a_line, points_on_this_line])
+                points_on_a_line = np.concatenate(
+                    [points_on_a_line, points_on_this_line]
+                )
         if self.points.size != 0:
-            mask = np.isin(self.points[:, 0], points_on_a_line[:, 0]) * np.isin(self.points[:, 1], points_on_a_line[:, 1])
+            mask = np.isin(self.points[:, 0], points_on_a_line[:, 0]) * np.isin(
+                self.points[:, 1], points_on_a_line[:, 1]
+            )
             not_on_a_line = self.points[~mask]
             plt.scatter(
                 not_on_a_line[:, 0],

@@ -24,11 +24,11 @@ class LinesFinder:
         rtheta_threshold: int,
         output: Path,
         bins: tuple[int, int],
-        width: float,
+        line_width: float,
     ):
         self.output = output
         self.bins = bins
-        self.width = width
+        self.line_width = line_width
         self.rtheta_threshold = rtheta_threshold
         self.thetas = np.linspace(
             self.THETA_RANGE[0], self.THETA_RANGE[1], self.bins[1]
@@ -80,7 +80,7 @@ class LinesFinder:
         plotter_r_theta.plot(self.output / "found_rtheta.pdf")
         for r_, theta_ in rs_thetas:
             line = Line(r_bins[int(r_)], self.thetas[int(theta_)])
-            line.points_on_line(points, self.width, self.data)
+            line.points_on_line(points, self.line_width, self.data)
             lines.append(line)
 
         plotter = Plotter(self.data, lines, points.astype(int))
