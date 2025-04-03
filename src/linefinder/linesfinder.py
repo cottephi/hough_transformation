@@ -10,7 +10,7 @@ from ..types import IMAGE, POINTS, R
 from .pointsfinder import PointsFinder
 from ..functions import r
 from ..plotter import Plotter
-from ..objects import Line
+from ..objects import Line, RThetaBins, Spreads, Thresholds
 
 
 class LinesFinder:
@@ -20,21 +20,19 @@ class LinesFinder:
     def __init__(
         self,
         data: IMAGE | Path,
-        xy_threshold: float,
-        rtheta_threshold: int,
+        thresholds: Thresholds,
         output: Path,
-        bins: tuple[int, int],
+        bins: RThetaBins,
         line_width: float,
-        xy_spread: int,
-        rtheta_spread: int,
+        spreads: Spreads,
     ):
         self.output = output
         self.bins = bins
         self.line_width = line_width
-        self.rtheta_threshold = rtheta_threshold
-        self.rtheta_spread = rtheta_spread
+        self.thresholds = thresholds
+        self.spreads = spreads
         self.thetas = np.linspace(
-            self.THETA_RANGE[0], self.THETA_RANGE[1], self.bins[1]
+            self.THETA_RANGE[0], self.THETA_RANGE[1], self.bins.theta
         ).reshape(-1, 1)
         if isinstance(data, np.ndarray):
             self.data = data
@@ -45,8 +43,8 @@ class LinesFinder:
                 if not "data" in f.keys():
                     raise ValueError("HDF5 file must contain the 'data' key")
                 self._set_data(f["data"][()])
-        self.xy_bins = self.data.shape
-        self.pointsfinder = PointsFinder(self.data, xy_threshold, xy_spread)
+        self.xy_bins: tuple[int, int] = self.data.shape
+        self.pointsfinder = PointsFinder(self.data, thresholds.xy, spreads.xy)
 
     @validate_call
     def _set_data(self, data: IMAGE):
@@ -58,10 +56,10 @@ class LinesFinder:
             partial(r, xs=points[:, 0], ys=points[:, 1]), 1, self.thetas
         ).T
         r_range = (rs.min().min(), rs.max().max())
-        r_bins = np.linspace(r_range[0], r_range[1], self.bins[0])
+        r_bins = np.linspace(r_range[0], r_range[1], self.bins.r)
         binned_rs = np.digitize(rs, r_bins) - 1
         binned_thetas = np.digitize(self.thetas[:, 0], self.thetas[:, 0]) - 1
-        image = np.zeros(self.bins)
+        image = np.zeros((self.bins.r, self.bins.theta))
         rs_thetas = np.concatenate(
             [
                 binned_rs.reshape(binned_rs.shape[0] * binned_rs.shape[1], 1),
@@ -80,7 +78,9 @@ class LinesFinder:
             print("No points found")
             return
         accumulator, r_bins = self._create_accumulator(points)
-        pointsfinder = PointsFinder(accumulator, self.rtheta_threshold, self.rtheta_spread)
+        pointsfinder = PointsFinder(
+            accumulator, self.thresholds.rtheta, self.spreads.rtheta
+        )
         rs_thetas = pointsfinder.find()
         plotter_r_theta = Plotter(accumulator, None, rs_thetas.astype(int))
         plotter_r_theta.plot(self.output / "found_rtheta.pdf")
@@ -102,12 +102,12 @@ class LinesFinder:
             origin="lower",
             extent=[0, data.shape[0], 0, data.shape[1]],
         )
-        r_step = self.bins[0] / 5
-        theta_step = self.bins[1] / 4
+        r_step = self.bins.r / 5
+        theta_step = self.bins.theta / 4
         fig.colorbar(image, ax=ax, shrink=0.8)
         ax = plt.gca()
         plt.xticks(
-            np.arange(0, self.bins[0] + 1, r_step),
+            np.arange(0, self.bins.r + 1, r_step),
             r_bins[:: int(r_step)] + [r_bins[-1]],
         )
         theta_labels = [
@@ -117,7 +117,7 @@ class LinesFinder:
             "$\\frac{3\\pi}{4}$",
             "$\\pi$",
         ]
-        plt.yticks(np.arange(0, self.bins[1] + 1, theta_step), theta_labels)
+        plt.yticks(np.arange(0, self.bins.theta + 1, theta_step), theta_labels)
         plt.xlabel("$r$")
         plt.ylabel("$\\theta$")
         fig.tight_layout()

@@ -1,3 +1,3 @@
-from .parser import Arguments
+from .settings import Settings
 
-__all__ = ["Arguments"]
+__all__ = ["Settings"]

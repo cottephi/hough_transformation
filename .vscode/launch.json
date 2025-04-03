@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "justMyCode": false,
             "name": "generator",
             "type": "debugpy",
             "request": "launch",
@@ -12,11 +13,12 @@
             "console": "integratedTerminal"
         },
         {
+            "justMyCode": false,
             "name": "finder",
             "type": "debugpy",
             "request": "launch",
             "program": "find_lines.py",
-            "args": ["-i", "generated_data/testdata.hdf5"],
+            "args": ["--input", "generated_data/testdata.hdf5"],
             "console": "integratedTerminal"
         }
     ]

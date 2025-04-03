@@ -34,12 +34,42 @@ class Points:
 
 
 class Deviations(BaseModel):
+    """The standard deviations of r, theta; the Gaussian used
+    to spread the signal across X and Y, the gaussian to generate the signal
+    value"""
+
     r: NonNegativeFloat
     theta: NonNegativeFloat
     spread: NonNegativeFloat
+    signal: NonNegativeFloat
 
-    def __repr__(self):
-        return f"sigma_r={self.r},sigma_theta={self.theta},spread={self.spread}"
+
+class XYBins(BaseModel):
+    """Number of pixels in the x-y space"""
+    x: int
+    y: int
+
+
+class RThetaBins(BaseModel):
+    """Number of pixels in the r-theta space"""
+    r: int
+    theta: int
+
+
+class Spreads(BaseModel):
+    """Zone around a point in x-y and r-theta spaces which will be used as
+    the kernel for the edge-sharpening convolution filter. The kernel's
+    dimensions will be 2*spread+1 x 2*spread+1, with a value of (2*spread+1)**2
+    at the center bin and -1 everywhere else."""
+    xy: int
+    rtheta: int
+
+
+class Thresholds(BaseModel):
+    """Threshold above which we consider data is signal in x-y space and
+    threshold above which we consider data is a line in r-theta space."""
+    xy: float
+    rtheta: float
 
 
 class Line(Points):

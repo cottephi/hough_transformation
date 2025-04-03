@@ -1,26 +1,27 @@
-DataGeneratorArgs:
-  n_lines: 3
-  deviations:
-    r: 0.2
-    theta: 0.0
-    spread: 0.5
-    signal: 0.2
-  points_per_line: 50
-  outside_points: 10
+DataGenerator:
   background_level: 0.01
   bins:
     x: 300
     y: 100
+  deviations:
+    r: 0.2
+    theta: 0.0
+    spread: 0.5
+    signal: 0.02
+  n_lines: 3
+  points_per_line: 50
+  outside_points: 10
   output: "testdata"
 
-LineFinderArgs:
+LinesFinder:
   bins:
     r: 500
     theta: 500
   input: "generated_data/testdata.hdf5"
   line_width: 1.0
-  rtheta_spread: 15
-  xy_spread: 5
+  spreads:
+    xy: 5
+    rtheta: 15
   thresholds:
     xy: 0.2
     rtheta: 5

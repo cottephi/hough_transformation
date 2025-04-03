@@ -9,7 +9,7 @@ from pydantic import BaseModel, validate_call
 
 from ..plotter.plotter import Plotter
 from ..functions import x, y, r
-from ..objects import Deviations, Points, Line
+from ..objects import Deviations, Points, Line, XYBins
 from ..types import (
     IMAGE,
     POINTS,
@@ -28,11 +28,9 @@ class PointsSpreadGenerator(Points):
         points: POINTS,
         bins: tuple[int, int],
         deviations: Deviations,
-        stddev: float,
     ):
         self.bins = bins
         self.deviations = deviations
-        self.stddev = stddev
         self.max_points = points
         self.points: POINTS
         self.signal: SIGNAL
@@ -54,7 +52,7 @@ class PointsSpreadGenerator(Points):
             mean=x_y,
             cov=[s] * 2,
         )
-        spread = np.random.normal(1, self.stddev) * spread / spread.sum()
+        spread = np.random.normal(1, self.deviations.signal) * spread / spread.sum()
         return np.concatenate([xs_ys, spread.reshape(-1, 1)], 1)
 
     def _generate_signal_and_bin(self) -> tuple[COORDINATES, SIGNAL]:
@@ -87,10 +85,9 @@ class GeneratedLine(PointsSpreadGenerator, Line):
         points: POINTS,
         bins: tuple[int, int],
         deviations: Deviations,
-        stddev: float,
     ):
         Line.__init__(self, r, theta, None, None)
-        PointsSpreadGenerator.__init__(self, points, bins, deviations, stddev)
+        PointsSpreadGenerator.__init__(self, points, bins, deviations)
 
 
 class LineGenerator:
@@ -99,24 +96,22 @@ class LineGenerator:
     @validate_call
     def __init__(
         self,
-        bins: tuple[int, int],
+        bins: XYBins,
         length: int,
         deviations: Deviations,
-        stddev: float,
     ):
         self.bins = bins
         self.length = length
         self.deviations = deviations
-        self.stddev = stddev
 
     @validate_call
     def _point_on_line(self, r_theta: R_THETA) -> tuple[float, float]:
         r_, theta_ = r_theta
-        y_range = y(np.array([0, self.bins[0]], dtype=float), r_, theta_)
+        y_range = y(np.array([0, self.bins.x], dtype=float), r_, theta_)
         y_range.sort()
         y_ = np.random.uniform(
             max(0, y_range[0]),
-            min(y_range[1], self.bins[1]),
+            min(y_range[1], self.bins.y),
         )
         return x(y_, r_, theta_), y_
 
@@ -138,12 +133,12 @@ class LineGenerator:
         )
         r_range = r(
             theta_,
-            xs=np.array([0, self.bins[0], 0, self.bins[0]], dtype=float),
-            ys=np.array([0, self.bins[1], self.bins[1], 0], dtype=float),
+            xs=np.array([0, self.bins.x, 0, self.bins.x], dtype=float),
+            ys=np.array([0, self.bins.y, self.bins.y, 0], dtype=float),
         )
         r_range = [
             max(0, r_range.min()),
-            min(min(self.bins), r_range.max()),
+            min(min((self.bins.x, self.bins.y)), r_range.max()),
         ]
         r_ = np.random.uniform(low=r_range[0], high=r_range[1])
         rs = (
@@ -162,9 +157,8 @@ class LineGenerator:
             np.apply_along_axis(
                 self._point_on_line, 1, np.concatenate([rs, thetas], 1)
             ),
-            self.bins,
+            (self.bins.x, self.bins.y),
             self.deviations,
-            self.stddev,
         )
 
     @validate_call
@@ -182,10 +176,10 @@ class DataGenerator:
             np.random.normal(
                 0,
                 self.config.background_level,
-                (self.config.bins[0], self.config.bins[1]),
+                (self.config.bins.x, self.config.bins.y),
             )
             if self.config.background_level > 0
-            else np.zeros((self.config.bins[0], self.config.bins[1]))
+            else np.zeros((self.config.bins.y, self.config.bins.x))
         )
         noise, lines = self._create_points()
         binned_coordinates = np.concatenate(
@@ -288,15 +282,14 @@ class DataGenerator:
             if self.config.outside_points == 0
             else np.random.uniform(
                 low=(0, 0),
-                high=(self.config.bins[0], self.config.bins[1]),
+                high=(self.config.bins.x, self.config.bins.y),
                 size=(self.config.n_lines * self.config.outside_points, 2),
             )
         )
         return PointsSpreadGenerator(
             points,
-            self.config.bins,
+            (self.config.bins.x, self.config.bins.y),
             self.config.deviations,
-            self.config.stddev,
         )
 
     def _create_points(
@@ -307,7 +300,6 @@ class DataGenerator:
             self.config.bins,
             self.config.points_per_line,
             self.config.deviations,
-            self.config.stddev,
         )
         lines = line_generator.generate(self.config.n_lines)
         return noise, lines
